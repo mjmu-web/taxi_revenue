@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TAXI REVENUE 営收管理 - MJMU</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+:root{ --neon:#0f0; --shadow:0 0 18px rgba(0,255,0,.28); --blue:#4cc3ff; --red:#ff5a5a; }
+*{box-sizing:border-box}
+body{font-family:'Orbitron','メイリオ',sans-serif;background:radial-gradient(circle at top,#111,#000);color:var(--neon);margin:0;padding:12px;}
+h1,h2{margin:0;text-align:center}
+h1{font-size:26px;letter-spacing:2px;text-shadow:0 0 10px var(--neon)}
+h2{font-size:13px;margin-top:2px;color:#8a8a8a}
+.header{position:relative;max-width:560px;margin:0 auto 6px auto;padding-top:44px}
+.topbtn{position:absolute;top:0;width:40px;height:40px;border-radius:50%;font-size:18px;border:none;background:#333;color:#fff;box-shadow:0 0 6px var(--neon);z-index:10;cursor:pointer}
+#settingBtn{left:0}
+
+.container{background:rgba(10,10,10,.92);border:1px solid var(--neon);border-radius:14px;box-shadow:var(--shadow);max-width:560px;margin:0 auto 12px;padding:14px;}
+label{display:block;margin-top:8px;color:#8f8;font-size:13px;}
+input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--neon);background:#0c0c0c;color:var(--neon);font-family:'Orbitron';font-size:15px;}
+button{padding:12px;border:none;border-radius:10px;font-weight:700;background:linear-gradient(145deg,#060,#0a0);color:#fff;box-shadow:0 0 10px rgba(0,255,0,.25);cursor:pointer}
+button:active{transform:scale(.97)}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.btn-gray{background:linear-gradient(145deg,#333,#444);color:#fff;border:1px solid #666}
+.btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon);text-shadow:0 0 5px var(--neon)}
+.pill{border-radius:22px}
+
+/* クリア＝青、未達成＝緑 */
+.pos{color:var(--blue);text-shadow:0 0 5px var(--blue)} 
+.neg{color:var(--neon);text-shadow:0 0 5px var(--neon)} 
+
+.datebar{display:flex;gap:8px;align-items:center;justify-content:space-between}
+#dateInput{flex:1;text-align:center}
+
+.result{margin-top:10px;padding:10px;border-radius:10px;text-align:center;background:#062;color:#fff;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.stat{white-space:nowrap;font-size:14px}.val{font-weight:700;font-size:16px}
+
+.fab{position:fixed;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;background:#1a1a1a;border:1px solid var(--neon);color:var(--neon);font-weight:700;z-index:80;cursor:pointer}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;padding:10px}
+.modal-content{background:#111;border:1px solid var(--neon);border-radius:12px;width:100%;max-width:440px;padding:15px;max-height:90vh;overflow-y:auto}
+
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.calc-grid button{height:55px;font-size:18px;background:#222;color:var(--neon);border:1px solid var(--neon)}
+.calc-grid button.span-v{grid-row:span 2;height:120px;background:var(--neon);color:#000}
+.calc-display{background:#000;border:1px solid var(--neon);padding:15px;text-align:right;font-size:24px;margin-bottom:10px;min-height:60px;overflow:hidden}
+
+.toast{position:fixed;bottom:80px;right:20px;background:#060;color:#fff;padding:10px 20px;border-radius:8px;display:none;z-index:200}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <button id="settingBtn" class="topbtn">⚙</button>
+  <h1>TAXI REVENUE</h1>
+  <h2>営收管理 by MJMU</h2>
+</div>
+
+<div class="container">
+  <div class="datebar">
+    <button id="prevDay" class="btn-metal">◀</button>
+    <input type="date" id="dateInput">
+    <button id="nextDay" class="btn-metal">▶</button>
+  </div>
+  <div class="row" style="margin:8px 0">
+    <div id="weekday" class="btn-metal" style="border-radius:10px;padding:8px;text-align:center">(---)</div>
+    <button id="nightBtn" class="btn-gray pill">☀️ 日勤</button>
+  </div>
+
+  <label>営收金額</label><input type="number" id="revenueInput" value="0">
+  <label>本数</label><input type="number" id="tripsInput" value="0">
+  <label>メモ</label><textarea id="memoInput"></textarea>
+
+  <button id="saveBtn" style="width:100%;margin-top:15px">💾 データを保存</button>
+
+  <div class="result">
+    <div class="stat">📊 目標残：<span id="dailyGoal" class="val">-</span></div>
+    <div class="stat">📅 月合計：<span id="monthTotal" class="val">0</span></div>
+    <div class="stat">🗓 年合計：<span id="yearTotal" class="val">0</span></div>
+  </div>
+</div>
+
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <h3>⚙ 設定</h3>
+    <label>月間目標 (円)</label><input type="number" id="mGoal" value="500000">
+    <label>年間目標 (円)</label><input type="number" id="yGoal" value="6000000">
+    <hr style="border:0;border-top:1px solid #333;margin:15px 0">
+    <div style="color:var(--blue);font-size:12px;margin-bottom:5px">📊 過去月実績入力 (3ヶ月分)</div>
+    <div id="pastMonthsContainer"></div>
+    <hr style="border:0;border-top:1px solid #333;margin:15px 0">
+    <div style="color:var(--blue);font-size:12px;margin-bottom:5px">☁️ Google Drive Sync</div>
+    <p style="font-size:10px;color:#888;">※ClientIDが未設定でもローカル保存は可能です</p>
+    <div class="row">
+      <button id="btnAuth" class="btn-metal small">ログイン</button>
+      <button id="btnSync" class="btn-gray small">クラウド保存</button>
+    </div>
+    <button id="saveSettingsClose" style="width:100%;margin-top:20px">設定を保存して閉じる</button>
+  </div>
+</div>
+
+<button id="fabCalc" class="fab">CAL</button>
+<div class="modal" id="calcModal">
+  <div class="modal-content">
+    <div id="calcDisplay" class="calc-display">0</div>
+    <div class="calc-grid">
+      <button class="btn-gray">AC</button><button class="btn-gray">⌫</button><button class="btn-gray">÷</button><button class="btn-gray">×</button>
+      <button>7</button><button>8</button><button>9</button><button class="btn-gray">-</button>
+      <button>4</button><button>5</button><button>6</button><button class="btn-gray">+</button>
+      <button>1</button><button>2</button><button>3</button><button id="calcEqual" class="span-v">=</button>
+      <button>0</button><button>00</button><button class="btn-gray">C</button>
+    </div>
+    <div class="row" style="margin-top:15px">
+      <button class="closeBtn btn-gray" id="calcCloseHalf">閉じる</button>
+      <button id="calcAutoInput" style="background:var(--blue);color:#000">自動入力</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ★ ClientIDは空でもエラーにならないように保護
+const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com'; 
+
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('dateInput');
+  const nightBtn = document.getElementById('nightBtn');
+  const revenueInput = document.getElementById('revenueInput');
+  let isNightMode = false;
+
+  // 初期日付
+  dateInput.value = new Date().toISOString().split('T')[0];
+
+  const showToast = (m) => { const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); };
+  
+  const updateWeekday = () => {
+    const d = new Date(dateInput.value);
+    const day = ['日','月','火','水','木','金','土'][d.getDay()];
+    document.getElementById('weekday').textContent = `(${day})`;
+  };
+
+  const renderPastMonths = () => {
+    const container = document.getElementById('pastMonthsContainer');
+    container.innerHTML = '';
+    const pastData = JSON.parse(localStorage.getItem('taxi_past_months') || '[]');
+    for(let i=0; i<3; i++){
+      const entry = pastData[i] || {month: new Date().toISOString().slice(0,7), val:0};
+      container.innerHTML += `<div class="row" style="margin-bottom:8px">
+        <input type="month" class="past-month" value="${entry.month}" style="flex:1.5">
+        <input type="number" class="past-val" value="${entry.val}" style="flex:2">
+      </div>`;
+    }
+  };
+
+  const updateSummary = () => {
+    const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
+    const settings = JSON.parse(localStorage.getItem('taxi_settings') || '{"mGoal":500000,"yGoal":6000000}');
+    const pastData = JSON.parse(localStorage.getItem('taxi_past_months') || '[]');
+    const mPrefix = dateInput.value.substring(0, 7);
+    const yearPrefix = dateInput.value.substring(0, 4);
+
+    let mTotal = 0, yTotal = 0;
+    Object.keys(data).forEach(k => {
+      const val = parseInt(data[k].rev || 0);
+      if(k.startsWith(mPrefix)) mTotal += val;
+      if(k.startsWith(yearPrefix)) yTotal += val;
+    });
+
+    pastData.forEach(p => {
+      const val = parseInt(p.val || 0);
+      if(p.month.startsWith(yearPrefix)) yTotal += val;
+      if(p.month === mPrefix) mTotal += val;
+    });
+
+    const mt = document.getElementById('monthTotal'), yt = document.getElementById('yearTotal');
+    mt.textContent = mTotal.toLocaleString() + "円";
+    mt.className = 'val ' + (mTotal >= settings.mGoal ? 'pos' : 'neg');
+    yt.textContent = yTotal.toLocaleString() + "円";
+    yt.className = 'val ' + (yTotal >= settings.yGoal ? 'pos' : 'neg');
+    document.getElementById('dailyGoal').textContent = Math.max(0, settings.mGoal - mTotal).toLocaleString() + "円";
+  };
+
+  const loadData = () => {
+    const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
+    const rec = data[dateInput.value] || {rev:0, trips:0, memo:'', night:false};
+    revenueInput.value = rec.rev;
+    document.getElementById('tripsInput').value = rec.trips;
+    document.getElementById('memoInput').value = rec.memo;
+    isNightMode = !!rec.night;
+    nightBtn.textContent = isNightMode ? "🌙 夜勤" : "☀️ 日勤";
+    nightBtn.className = isNightMode ? "btn-metal pill" : "btn-gray pill";
+    updateSummary();
+  };
+
+  const saveData = () => {
+    const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
+    data[dateInput.value] = {
+      rev: parseInt(revenueInput.value) || 0,
+      trips: parseInt(document.getElementById('tripsInput').value) || 0,
+      memo: document.getElementById('memoInput').value,
+      night: isNightMode
+    };
+    localStorage.setItem('taxi_records', JSON.stringify(data));
+    showToast("💾 保存完了");
+    updateSummary();
+  };
+
+  /* --- 動作のキモ：イベント設定 --- */
+  document.getElementById('saveBtn').onclick = saveData;
+
+  nightBtn.onclick = () => {
+    let d = new Date(dateInput.value);
+    if (!isNightMode) {
+      d.setDate(d.getDate() - 1); // 日付を1日戻す
+      isNightMode = true;
+    } else {
+      isNightMode = false; // 日付は戻したまま（昨日の夜勤→昨日の日勤）
+    }
+    dateInput.value = d.toISOString().split('T')[0];
+    updateWeekday(); loadData();
+  };
+
+  document.getElementById('prevDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()-1); dateInput.value=d.toISOString().split('T')[0]; updateWeekday(); loadData(); };
+  document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; updateWeekday(); loadData(); };
+  dateInput.onchange = () => { updateWeekday(); loadData(); };
+
+  /* --- 電卓：確実に計算結果を入れる --- */
+  let exp = "0";
+  const cDisp = document.getElementById('calcDisplay');
+  document.querySelectorAll('.calc-grid button').forEach(b => {
+    b.onclick = () => {
+      const v = b.textContent;
+      if (v==='AC' || v==='C') exp="0";
+      else if (v==='⌫') exp = exp.length > 1 ? exp.slice(0,-1) : "0";
+      else if (v==='=') {
+        try { exp = String(Math.floor(eval(exp.replace('×','*').replace('÷','/')))); } catch(e) { exp="Error"; }
+      } else {
+        exp = (exp==="0") ? v : exp + v;
+      }
+      cDisp.textContent = exp;
+    };
+  });
+
+  document.getElementById('calcAutoInput').onclick = () => {
+    try {
+      const res = Math.floor(eval(exp.replace('×','*').replace('÷','/')));
+      revenueInput.value = res;
+      document.getElementById('calcModal').style.display='none';
+      saveData();
+    } catch(e){}
+  };
+
+  /* --- Google Sync 準備（エラー回避版） --- */
+  document.getElementById('btnAuth').onclick = () => {
+    if(CLIENT_ID.includes('YOUR_')) {
+      alert("ClientIDが設定されていません。Google Cloud Consoleで取得したIDをソースコードに入れてください。");
+    } else {
+      showToast("認証画面を呼び出します...");
+      // ここにGSIのトークン要求を書く
+    }
+  };
+
+  document.getElementById('btnSync').onclick = () => showToast("現在ローカル保存のみ有効です");
+
+  /* --- モーダル・UI制御 --- */
+  document.getElementById('settingBtn').onclick = () => { renderPastMonths(); document.getElementById('settingsModal').style.display='flex'; };
+  document.getElementById('fabCalc').onclick = () => { exp="0"; cDisp.textContent="0"; document.getElementById('calcModal').style.display='flex'; };
+  document.querySelectorAll('.closeBtn, #calcCloseHalf').forEach(b => b.onclick = () => b.closest('.modal').style.display='none');
+  
+  document.getElementById('saveSettingsClose').onclick = () => {
+    localStorage.setItem('taxi_settings', JSON.stringify({
+      mGoal: +document.getElementById('mGoal').value,
+      yGoal: +document.getElementById('yGoal').value
+    }));
+    const pasts = [];
+    document.querySelectorAll('#pastMonthsContainer .row').forEach(row => {
+      pasts.push({
+        month: row.querySelector('.past-month').value,
+        val: row.querySelector('.past-val').value
+      });
+    });
+    localStorage.setItem('taxi_past_months', JSON.stringify(pasts));
+    document.getElementById('settingsModal').style.display='none';
+    updateSummary();
+  };
+
+  updateWeekday();
+  loadData();
+});
+</script>
+</body>
+</html>
+
