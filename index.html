@@ -177,7 +177,102 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; loadData(); };
   dateInput.onchange = loadData;
 
-  /* --- Google Auth 修正：ライブラリ読み込み後に初期化し、ボタンに命令を直結 --- */
+  /* --- Google Auth & Sync 修正版 --- */
+
+// クラウドからデータを読み込む関数
+async function loadFromCloud() {
+  if (!accessToken) return;
+  showToast("クラウドから読込中...");
+  try {
+    const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json'&fields=files(id)`, {
+      headers: {'Authorization': `Bearer ${accessToken}`}
+    }).then(r => r.json());
+
+    if (search.files && search.files.length > 0) {
+      const fileId = search.files[0].id;
+      const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: {'Authorization': `Bearer ${accessToken}`}
+      });
+      
+      if (response.ok) {
+        const cloudData = await response.json();
+        const localData = JSON.parse(localStorage.getItem('taxi_records') || '{}');
+        
+        // ローカルとクラウドをマージ（同じ日付はクラウド優先）
+        const mergedData = { ...localData, ...cloudData };
+        localStorage.setItem('taxi_records', JSON.stringify(mergedData));
+        
+        loadData(); // UIを更新
+        showToast("読込＆同期完了");
+      }
+    } else {
+      showToast("クラウドにデータがありません");
+    }
+  } catch (e) {
+    console.error(e);
+    showToast("読込エラー");
+  }
+}
+
+// 認証完了時のコールバックを修正
+function initGoogleAuth() {
+  if(typeof google !== 'undefined'){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPES,
+      callback: async (resp) => {
+        if(resp.access_token){
+          accessToken = resp.access_token;
+          document.getElementById('btnSync').disabled = false;
+          document.getElementById('btnSync').className = "btn-metal";
+          showToast("認証成功");
+          
+          // ログイン直後に自動でクラウドから読み込む
+          await loadFromCloud();
+        }
+      }
+    });
+  }
+}
+
+// 保存（同期）ボタンの処理
+document.getElementById('btnSync').onclick = async () => {
+  showToast("クラウド保存中...");
+  const content = localStorage.getItem('taxi_records');
+  try {
+    const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json'`, {
+      headers: {'Authorization': `Bearer ${accessToken}`}
+    }).then(r => r.json());
+    
+    let fileId = (search.files && search.files.length > 0) ? search.files[0].id : null;
+    let url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media` : `https://www.googleapis.com/upload/drive/v3/files?uploadType=media`;
+    
+    const res = await fetch(url, {
+      method: fileId ? 'PATCH' : 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: content
+    });
+
+    if (res.ok && !fileId) {
+      // 新規作成時はファイル名を指定
+      const newFile = await res.json();
+      await fetch(`https://www.googleapis.com/drive/v3/files/${newFile.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({name: 'taxi_backup.json'})
+      });
+    }
+    showToast("クラウド保存完了");
+  } catch(e){
+    showToast("同期エラー");
+  }
+};
+
   function initGoogleAuth() {
     if(typeof google !== 'undefined'){
       tokenClient = google.accounts.oauth2.initTokenClient({
