@@ -28,7 +28,6 @@ button:active{transform:scale(.97)}
 .btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon);text-shadow:0 0 5px var(--neon)}
 .pill{border-radius:22px}
 
-/* クリア＝青、未達成＝緑 */
 .pos{color:var(--blue);text-shadow:0 0 5px var(--blue)} 
 .neg{color:var(--neon);text-shadow:0 0 5px var(--neon)} 
 
@@ -48,6 +47,7 @@ button:active{transform:scale(.97)}
 .calc-display{background:#000;border:1px solid var(--neon);padding:15px;text-align:right;font-size:24px;margin-bottom:10px;min-height:60px;overflow:hidden}
 
 .toast{position:fixed;bottom:80px;right:20px;background:#060;color:#fff;padding:10px 20px;border-radius:8px;display:none;z-index:200}
+#syncLog{color:#8a8a8a;font-family:monospace;font-size:10px;margin-top:10px;text-align:left;max-height:50px;overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -69,7 +69,7 @@ button:active{transform:scale(.97)}
     <button id="nightBtn" class="btn-gray pill">☀️ 日勤</button>
   </div>
 
-  <label>営收金額</label><input type="number" id="revenueInput" value="0">
+  <label>營收金額</label><input type="number" id="revenueInput" value="0">
   <label>本数</label><input type="number" id="tripsInput" value="0">
   <label>メモ</label><textarea id="memoInput"></textarea>
 
@@ -92,11 +92,11 @@ button:active{transform:scale(.97)}
     <div id="pastMonthsContainer"></div>
     <hr style="border:0;border-top:1px solid #333;margin:15px 0">
     <div style="color:var(--blue);font-size:12px;margin-bottom:5px">☁️ Google Drive Sync</div>
-    <p style="font-size:10px;color:#888;">※ClientIDが未設定でもローカル保存は可能です</p>
     <div class="row">
-      <button id="btnAuth" class="btn-metal small">ログイン</button>
-      <button id="btnSync" class="btn-gray small">クラウド保存</button>
+      <button id="btnAuth" class="btn-metal small">1. ログイン</button>
+      <button id="btnSync" class="btn-gray small" disabled>2. クラウド同期</button>
     </div>
+    <div id="syncLog"></div>
     <button id="saveSettingsClose" style="width:100%;margin-top:20px">設定を保存して閉じる</button>
   </div>
 </div>
@@ -122,8 +122,10 @@ button:active{transform:scale(.97)}
 <div class="toast" id="toast"></div>
 
 <script>
-// ★ ClientIDは空でもエラーにならないように保護
 const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com'; 
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+let accessToken = null;
+let tokenClient;
 
 document.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('dateInput');
@@ -131,28 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const revenueInput = document.getElementById('revenueInput');
   let isNightMode = false;
 
-  // 初期日付
   dateInput.value = new Date().toISOString().split('T')[0];
 
-  const showToast = (m) => { const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); };
+  const showToast = (m) => {
+    const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000);
+    const log = document.getElementById('syncLog'); if(log) log.innerHTML = `> ${m}`;
+  };
   
   const updateWeekday = () => {
     const d = new Date(dateInput.value);
     const day = ['日','月','火','水','木','金','土'][d.getDay()];
     document.getElementById('weekday').textContent = `(${day})`;
-  };
-
-  const renderPastMonths = () => {
-    const container = document.getElementById('pastMonthsContainer');
-    container.innerHTML = '';
-    const pastData = JSON.parse(localStorage.getItem('taxi_past_months') || '[]');
-    for(let i=0; i<3; i++){
-      const entry = pastData[i] || {month: new Date().toISOString().slice(0,7), val:0};
-      container.innerHTML += `<div class="row" style="margin-bottom:8px">
-        <input type="month" class="past-month" value="${entry.month}" style="flex:1.5">
-        <input type="number" class="past-val" value="${entry.val}" style="flex:2">
-      </div>`;
-    }
   };
 
   const updateSummary = () => {
@@ -168,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if(k.startsWith(mPrefix)) mTotal += val;
       if(k.startsWith(yearPrefix)) yTotal += val;
     });
-
     pastData.forEach(p => {
       const val = parseInt(p.val || 0);
       if(p.month.startsWith(yearPrefix)) yTotal += val;
@@ -204,21 +194,16 @@ document.addEventListener('DOMContentLoaded', () => {
       night: isNightMode
     };
     localStorage.setItem('taxi_records', JSON.stringify(data));
-    showToast("💾 保存完了");
+    showToast("💾 ローカル保存完了");
     updateSummary();
   };
 
-  /* --- 動作のキモ：イベント設定 --- */
   document.getElementById('saveBtn').onclick = saveData;
 
   nightBtn.onclick = () => {
     let d = new Date(dateInput.value);
-    if (!isNightMode) {
-      d.setDate(d.getDate() - 1); // 日付を1日戻す
-      isNightMode = true;
-    } else {
-      isNightMode = false; // 日付は戻したまま（昨日の夜勤→昨日の日勤）
-    }
+    if (!isNightMode) { d.setDate(d.getDate() - 1); isNightMode = true; }
+    else { isNightMode = false; }
     dateInput.value = d.toISOString().split('T')[0];
     updateWeekday(); loadData();
   };
@@ -227,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; updateWeekday(); loadData(); };
   dateInput.onchange = () => { updateWeekday(); loadData(); };
 
-  /* --- 電卓：確実に計算結果を入れる --- */
+  /* 電卓ロジック */
   let exp = "0";
   const cDisp = document.getElementById('calcDisplay');
   document.querySelectorAll('.calc-grid button').forEach(b => {
@@ -235,15 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const v = b.textContent;
       if (v==='AC' || v==='C') exp="0";
       else if (v==='⌫') exp = exp.length > 1 ? exp.slice(0,-1) : "0";
-      else if (v==='=') {
-        try { exp = String(Math.floor(eval(exp.replace('×','*').replace('÷','/')))); } catch(e) { exp="Error"; }
-      } else {
-        exp = (exp==="0") ? v : exp + v;
-      }
+      else if (v==='=') { try { exp = String(Math.floor(eval(exp.replace('×','*').replace('÷','/')))); } catch(e) { exp="Error"; } }
+      else { exp = (exp==="0") ? v : exp + v; }
       cDisp.textContent = exp;
     };
   });
-
   document.getElementById('calcAutoInput').onclick = () => {
     try {
       const res = Math.floor(eval(exp.replace('×','*').replace('÷','/')));
@@ -253,36 +234,65 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(e){}
   };
 
-  /* --- Google Sync 準備（エラー回避版） --- */
-  document.getElementById('btnAuth').onclick = () => {
-    if(CLIENT_ID.includes('491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com')) {
-      alert("ClientIDが設定されていません。Google Cloud Consoleで取得したIDをソースコードに入れてください。");
-    } else {
-      showToast("認証画面を呼び出します...");
-      // ここにGSIのトークン要求を書く
-    }
+  /* Google Auth 初期化 */
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.access_token) {
+        accessToken = resp.access_token;
+        document.getElementById('btnSync').disabled = false;
+        document.getElementById('btnSync').className = "btn-metal small";
+        showToast("✅ ログイン成功");
+      }
+    },
+  });
+
+  document.getElementById('btnAuth').onclick = () => tokenClient.requestAccessToken({prompt: 'consent'});
+
+  document.getElementById('btnSync').onclick = async () => {
+    if(!accessToken) return;
+    showToast("☁️ 同期中...");
+    const content = localStorage.getItem('taxi_records');
+    try {
+      const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json' and trashed=false`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      }).then(r => r.json());
+
+      let fileId = (search.files && search.files.length > 0) ? search.files[0].id : null;
+      let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=media';
+      let method = 'POST';
+
+      if (fileId) {
+        url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+        method = 'PATCH';
+      }
+
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: content
+      });
+
+      if (res.ok) {
+        if (!fileId) {
+          const newFile = await res.json();
+          await fetch(`https://www.googleapis.com/drive/v3/files/${newFile.id}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: 'taxi_backup.json' })
+          });
+        }
+        showToast("✅ クラウド保存完了");
+      }
+    } catch (e) { showToast("❌ 同期エラー"); }
   };
 
-  document.getElementById('btnSync').onclick = () => showToast("現在ローカル保存のみ有効です");
-
-  /* --- モーダル・UI制御 --- */
-  document.getElementById('settingBtn').onclick = () => { renderPastMonths(); document.getElementById('settingsModal').style.display='flex'; };
+  document.getElementById('settingBtn').onclick = () => { document.getElementById('settingsModal').style.display='flex'; };
   document.getElementById('fabCalc').onclick = () => { exp="0"; cDisp.textContent="0"; document.getElementById('calcModal').style.display='flex'; };
   document.querySelectorAll('.closeBtn, #calcCloseHalf').forEach(b => b.onclick = () => b.closest('.modal').style.display='none');
-  
   document.getElementById('saveSettingsClose').onclick = () => {
-    localStorage.setItem('taxi_settings', JSON.stringify({
-      mGoal: +document.getElementById('mGoal').value,
-      yGoal: +document.getElementById('yGoal').value
-    }));
-    const pasts = [];
-    document.querySelectorAll('#pastMonthsContainer .row').forEach(row => {
-      pasts.push({
-        month: row.querySelector('.past-month').value,
-        val: row.querySelector('.past-val').value
-      });
-    });
-    localStorage.setItem('taxi_past_months', JSON.stringify(pasts));
+    localStorage.setItem('taxi_settings', JSON.stringify({ mGoal: +document.getElementById('mGoal').value, yGoal: +document.getElementById('yGoal').value }));
     document.getElementById('settingsModal').style.display='none';
     updateSummary();
   };
