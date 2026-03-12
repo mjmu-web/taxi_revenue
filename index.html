@@ -24,10 +24,8 @@ button:active{transform:scale(.97)}
 .row{display:flex;gap:8px;align-items:center}
 .row>*{flex:1}
 .btn-gray{background:linear-gradient(145deg,#333,#444);color:#fff;border:1px solid #666}
-.btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon)}
+.btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon);text-shadow:0 0 5px var(--neon)}
 .pill{border-radius:22px}
-.pos{color:var(--blue);text-shadow:0 0 5px var(--blue)} 
-.neg{color:var(--neon);text-shadow:0 0 5px var(--neon)} 
 .datebar{display:flex;gap:8px;align-items:center;justify-content:space-between}
 #dateInput{flex:1;text-align:center}
 .result{margin-top:10px;padding:10px;border-radius:10px;text-align:center;background:#062;color:#fff;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
@@ -113,12 +111,11 @@ button:active{transform:scale(.97)}
 <script>
 const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-let accessToken = null, tokenClient;
+let accessToken = null, tokenClient, isNightMode = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   const dateInput = document.getElementById('dateInput'), revenueInput = document.getElementById('revenueInput');
-  const syncLog = document.getElementById('syncLog'), toast = document.getElementById('toast');
-  const nightBtn = document.getElementById('nightBtn');
+  const syncLog = document.getElementById('syncLog'), toast = document.getElementById('toast'), nightBtn = document.getElementById('nightBtn');
   dateInput.value = new Date().toISOString().split('T')[0];
 
   const showToast = (msg) => {
@@ -163,23 +160,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dailyGoal').textContent = Math.max(0, settings.mGoal - mTotal).toLocaleString() + "円";
   };
 
+  const setNightUI = (on) => {
+    isNightMode = on;
+    if(isNightMode){
+      nightBtn.classList.remove("btn-gray");
+      nightBtn.classList.add("btn-metal");
+      nightBtn.textContent = "🌙 夜勤";
+    } else {
+      nightBtn.classList.remove("btn-metal");
+      nightBtn.classList.add("btn-gray");
+      nightBtn.textContent = "☀️ 日勤";
+    }
+  };
+
   const loadData = () => {
     const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
     const rec = data[dateInput.value] || {rev:0, trips:0, memo:'', night:false};
-    
     revenueInput.value = rec.rev;
     document.getElementById('tripsInput').value = rec.trips;
     document.getElementById('memoInput').value = rec.memo;
-    
-    // 勤務モードUI反映
-    if(rec.night) {
-      nightBtn.textContent = "🌙 夜勤";
-      nightBtn.className = "btn-metal pill";
-    } else {
-      nightBtn.textContent = "☀️ 日勤";
-      nightBtn.className = "btn-gray pill";
-    }
-    
+    setNightUI(!!rec.night);
     const d = new Date(dateInput.value);
     document.getElementById('weekday').textContent = `(${['日','月','火','水','木','金','土'][d.getDay()]})`;
     updateSummary();
@@ -187,38 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('saveBtn').onclick = () => {
     const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
-    const isNight = (nightBtn.textContent === "🌙 夜勤");
-    data[dateInput.value] = { 
-      rev: parseInt(revenueInput.value) || 0, 
-      trips: parseInt(document.getElementById('tripsInput').value) || 0, 
-      memo: document.getElementById('memoInput').value, 
-      night: isNight 
-    };
+    data[dateInput.value] = { rev: parseInt(revenueInput.value) || 0, trips: parseInt(document.getElementById('tripsInput').value) || 0, memo: document.getElementById('memoInput').value, night: isNightMode };
     localStorage.setItem('taxi_records', JSON.stringify(data));
     showToast("保存完了"); updateSummary();
   };
 
-  // 勤務切り替えボタンの修正
+  // ★ 修正：夜勤ボタンの挙動（参照コードに基づき日付移動を削除）
   nightBtn.onclick = () => {
-    const isCurrentlyNight = (nightBtn.textContent === "🌙 夜勤");
-    let d = new Date(dateInput.value);
-    
-    if (!isCurrentlyNight) {
-      // 日勤→夜勤へ：日付を1日戻し、フラグを夜勤にする
-      d.setDate(d.getDate() - 1);
-      dateInput.value = d.toISOString().split('T')[0];
-      nightBtn.textContent = "🌙 夜勤";
-      nightBtn.className = "btn-metal pill";
-    } else {
-      // 夜勤→日勤へ：日付を1日進め、フラグを日勤にする
-      d.setDate(d.getDate() + 1);
-      dateInput.value = d.toISOString().split('T')[0];
-      nightBtn.textContent = "☀️ 日勤";
-      nightBtn.className = "btn-gray pill";
-    }
-    // 切り替え後の日付のデータをロード
-    loadData();
-    showToast("勤務モードを切り替えました");
+    setNightUI(!isNightMode);
   };
 
   document.getElementById('prevDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()-1); dateInput.value=d.toISOString().split('T')[0]; loadData(); };
@@ -253,13 +229,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('calcAutoInput').onclick = () => { revenueInput.value = parseInt(disp.textContent) || 0; document.getElementById('calcModal').style.display='none'; };
 
+  // ★ 修正：Google認証ボタンに実行命令を追記
   if(typeof google !== 'undefined'){
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID, scope: SCOPES,
       callback: (resp) => { if(resp.access_token){ accessToken = resp.access_token; document.getElementById('btnSync').disabled = false; document.getElementById('btnSync').className = "btn-metal"; showToast("認証成功"); } }
     });
   }
-  document.getElementById('btnAuth').onclick = () => tokenClient.requestAccessToken({prompt: 'consent'});
+  document.getElementById('btnAuth').onclick = () => {
+    showToast("認証画面を起動中...");
+    tokenClient.requestAccessToken({prompt: 'consent'}); // 認証をリクエスト
+  };
+
   document.getElementById('btnSync').onclick = async () => {
     showToast("同期中..."); const content = localStorage.getItem('taxi_records');
     try {
