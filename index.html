@@ -7,7 +7,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
-:root{ --neon:#0f0; --shadow:0 0 18px rgba(0,255,0,.28); --blue:#4cc3ff; --red:#ff5a5a; }
+:root{ --neon:#0f0; --shadow:0 0 18px rgba(0,255,0,.28); --blue:#4cc3ff; }
 *{box-sizing:border-box}
 body{font-family:'Orbitron','メイリオ',sans-serif;background:radial-gradient(circle at top,#111,#000);color:var(--neon);margin:0;padding:12px;}
 h1,h2{margin:0;text-align:center}
@@ -16,38 +16,31 @@ h2{font-size:13px;margin-top:2px;color:#8a8a8a}
 .header{position:relative;max-width:560px;margin:0 auto 6px auto;padding-top:44px}
 .topbtn{position:absolute;top:0;width:40px;height:40px;border-radius:50%;font-size:18px;border:none;background:#333;color:#fff;box-shadow:0 0 6px var(--neon);z-index:10;cursor:pointer}
 #settingBtn{left:0}
-
 .container{background:rgba(10,10,10,.92);border:1px solid var(--neon);border-radius:14px;box-shadow:var(--shadow);max-width:560px;margin:0 auto 12px;padding:14px;}
 label{display:block;margin-top:8px;color:#8f8;font-size:13px;}
 input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--neon);background:#0c0c0c;color:var(--neon);font-family:'Orbitron';font-size:15px;}
-button{padding:12px;border:none;border-radius:10px;font-weight:700;background:linear-gradient(145deg,#060,#0a0);color:#fff;box-shadow:0 0 10px rgba(0,255,0,.25);cursor:pointer}
+button{padding:12px;border:none;border-radius:10px;font-weight:700;background:linear-gradient(145deg,#060,#0a0);color:#fff;cursor:pointer}
 button:active{transform:scale(.97)}
 .row{display:flex;gap:8px;align-items:center}
 .row>*{flex:1}
 .btn-gray{background:linear-gradient(145deg,#333,#444);color:#fff;border:1px solid #666}
-.btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon);text-shadow:0 0 5px var(--neon)}
+.btn-metal{background:linear-gradient(145deg,#222,#333);border:1px solid var(--neon);color:var(--neon)}
 .pill{border-radius:22px}
-
 .pos{color:var(--blue);text-shadow:0 0 5px var(--blue)} 
 .neg{color:var(--neon);text-shadow:0 0 5px var(--neon)} 
-
 .datebar{display:flex;gap:8px;align-items:center;justify-content:space-between}
 #dateInput{flex:1;text-align:center}
-
 .result{margin-top:10px;padding:10px;border-radius:10px;text-align:center;background:#062;color:#fff;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .stat{white-space:nowrap;font-size:14px}.val{font-weight:700;font-size:16px}
-
 .fab{position:fixed;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;background:#1a1a1a;border:1px solid var(--neon);color:var(--neon);font-weight:700;z-index:80;cursor:pointer}
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;padding:10px}
 .modal-content{background:#111;border:1px solid var(--neon);border-radius:12px;width:100%;max-width:440px;padding:15px;max-height:90vh;overflow-y:auto}
-
 .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
 .calc-grid button{height:55px;font-size:18px;background:#222;color:var(--neon);border:1px solid var(--neon)}
 .calc-grid button.span-v{grid-row:span 2;height:120px;background:var(--neon);color:#000}
 .calc-display{background:#000;border:1px solid var(--neon);padding:15px;text-align:right;font-size:24px;margin-bottom:10px;min-height:60px;overflow:hidden}
-
 .toast{position:fixed;bottom:80px;right:20px;background:#060;color:#fff;padding:10px 20px;border-radius:8px;display:none;z-index:200}
-#syncLog{color:#8a8a8a;font-family:monospace;font-size:10px;margin-top:10px;text-align:left;max-height:50px;overflow-y:auto;}
+#syncLog{color:#8a8a8a;font-family:monospace;font-size:10px;margin-top:10px;max-height:60px;overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -68,13 +61,10 @@ button:active{transform:scale(.97)}
     <div id="weekday" class="btn-metal" style="border-radius:10px;padding:8px;text-align:center">(---)</div>
     <button id="nightBtn" class="btn-gray pill">☀️ 日勤</button>
   </div>
-
   <label>營收金額</label><input type="number" id="revenueInput" value="0">
   <label>本数</label><input type="number" id="tripsInput" value="0">
   <label>メモ</label><textarea id="memoInput"></textarea>
-
   <button id="saveBtn" style="width:100%;margin-top:15px">💾 データを保存</button>
-
   <div class="result">
     <div class="stat">📊 目標残：<span id="dailyGoal" class="val">-</span></div>
     <div class="stat">📅 月合計：<span id="monthTotal" class="val">0</span></div>
@@ -93,8 +83,8 @@ button:active{transform:scale(.97)}
     <hr style="border:0;border-top:1px solid #333;margin:15px 0">
     <div style="color:var(--blue);font-size:12px;margin-bottom:5px">☁️ Google Drive Sync</div>
     <div class="row">
-      <button id="btnAuth" class="btn-metal small">1. ログイン</button>
-      <button id="btnSync" class="btn-gray small" disabled>2. クラウド同期</button>
+      <button id="btnAuth" class="btn-metal">1. ログイン</button>
+      <button id="btnSync" class="btn-gray" disabled>2. 同期実行</button>
     </div>
     <div id="syncLog"></div>
     <button id="saveSettingsClose" style="width:100%;margin-top:20px">設定を保存して閉じる</button>
@@ -106,70 +96,69 @@ button:active{transform:scale(.97)}
   <div class="modal-content">
     <div id="calcDisplay" class="calc-display">0</div>
     <div class="calc-grid">
-      <button class="btn-gray">AC</button><button class="btn-gray">⌫</button><button class="btn-gray">÷</button><button class="btn-gray">×</button>
-      <button>7</button><button>8</button><button>9</button><button class="btn-gray">-</button>
-      <button>4</button><button>5</button><button>6</button><button class="btn-gray">+</button>
-      <button>1</button><button>2</button><button>3</button><button id="calcEqual" class="span-v">=</button>
-      <button>0</button><button>00</button><button class="btn-gray">C</button>
+      <button class="c-btn">AC</button><button class="c-btn">⌫</button><button class="c-btn">÷</button><button class="c-btn">×</button>
+      <button class="c-btn">7</button><button class="c-btn">8</button><button class="c-btn">9</button><button class="c-btn">-</button>
+      <button class="c-btn">4</button><button class="c-btn">5</button><button class="c-btn">6</button><button class="c-btn">+</button>
+      <button class="c-btn">1</button><button class="c-btn">2</button><button class="c-btn">3</button><button id="calcEqual" class="span-v c-btn">=</button>
+      <button class="c-btn">0</button><button class="c-btn">00</button><button class="c-btn">C</button>
     </div>
     <div class="row" style="margin-top:15px">
-      <button class="closeBtn btn-gray" id="calcCloseHalf">閉じる</button>
+      <button id="calcClose" class="btn-gray">閉じる</button>
       <button id="calcAutoInput" style="background:var(--blue);color:#000">自動入力</button>
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com'; 
+const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-let accessToken = null;
-let tokenClient;
+let accessToken = null, tokenClient, isNightMode = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  const dateInput = document.getElementById('dateInput');
-  const nightBtn = document.getElementById('nightBtn');
-  const revenueInput = document.getElementById('revenueInput');
-  let isNightMode = false;
-
+  const dateInput = document.getElementById('dateInput'), revenueInput = document.getElementById('revenueInput');
+  const syncLog = document.getElementById('syncLog'), toast = document.getElementById('toast');
   dateInput.value = new Date().toISOString().split('T')[0];
 
-  const showToast = (m) => {
-    const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000);
-    const log = document.getElementById('syncLog'); if(log) log.innerHTML = `> ${m}`;
+  const showToast = (msg) => {
+    toast.textContent = msg; toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 2000);
+    if(syncLog) syncLog.innerHTML += `<div>> ${msg}</div>`;
   };
-  
-  const updateWeekday = () => {
-    const d = new Date(dateInput.value);
-    const day = ['日','月','火','水','木','金','土'][d.getDay()];
-    document.getElementById('weekday').textContent = `(${day})`;
+
+  const renderPastMonths = () => {
+    const container = document.getElementById('pastMonthsContainer');
+    container.innerHTML = '';
+    const pastData = JSON.parse(localStorage.getItem('taxi_past_months') || '[]');
+    for(let i=0; i<3; i++){
+      const entry = pastData[i] || {month: "", val:0};
+      container.innerHTML += `<div class="row" style="margin-bottom:8px">
+        <input type="month" class="past-month" value="${entry.month}">
+        <input type="number" class="past-val" value="${entry.val}">
+      </div>`;
+    }
   };
 
   const updateSummary = () => {
     const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
     const settings = JSON.parse(localStorage.getItem('taxi_settings') || '{"mGoal":500000,"yGoal":6000000}');
     const pastData = JSON.parse(localStorage.getItem('taxi_past_months') || '[]');
-    const mPrefix = dateInput.value.substring(0, 7);
-    const yearPrefix = dateInput.value.substring(0, 4);
-
+    const mPrefix = dateInput.value.substring(0, 7), yPrefix = dateInput.value.substring(0, 4);
     let mTotal = 0, yTotal = 0;
+
     Object.keys(data).forEach(k => {
-      const val = parseInt(data[k].rev || 0);
-      if(k.startsWith(mPrefix)) mTotal += val;
-      if(k.startsWith(yearPrefix)) yTotal += val;
+      const v = parseInt(data[k].rev || 0);
+      if(k.startsWith(mPrefix)) mTotal += v;
+      if(k.startsWith(yPrefix)) yTotal += v;
     });
     pastData.forEach(p => {
-      const val = parseInt(p.val || 0);
-      if(p.month.startsWith(yearPrefix)) yTotal += val;
-      if(p.month === mPrefix) mTotal += val;
+      const v = parseInt(p.val || 0);
+      if(p.month && p.month.startsWith(yPrefix)) yTotal += v;
+      if(p.month === mPrefix) mTotal += v;
     });
 
-    const mt = document.getElementById('monthTotal'), yt = document.getElementById('yearTotal');
-    mt.textContent = mTotal.toLocaleString() + "円";
-    mt.className = 'val ' + (mTotal >= settings.mGoal ? 'pos' : 'neg');
-    yt.textContent = yTotal.toLocaleString() + "円";
-    yt.className = 'val ' + (yTotal >= settings.yGoal ? 'pos' : 'neg');
+    document.getElementById('monthTotal').textContent = mTotal.toLocaleString() + "円";
+    document.getElementById('yearTotal').textContent = yTotal.toLocaleString() + "円";
     document.getElementById('dailyGoal').textContent = Math.max(0, settings.mGoal - mTotal).toLocaleString() + "円";
   };
 
@@ -180,124 +169,72 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('tripsInput').value = rec.trips;
     document.getElementById('memoInput').value = rec.memo;
     isNightMode = !!rec.night;
-    nightBtn.textContent = isNightMode ? "🌙 夜勤" : "☀️ 日勤";
-    nightBtn.className = isNightMode ? "btn-metal pill" : "btn-gray pill";
+    document.getElementById('nightBtn').textContent = isNightMode ? "🌙 夜勤" : "☀️ 日勤";
+    const d = new Date(dateInput.value);
+    document.getElementById('weekday').textContent = `(${['日','月','火','水','木','金','土'][d.getDay()]})`;
     updateSummary();
   };
 
-  const saveData = () => {
+  document.getElementById('saveBtn').onclick = () => {
     const data = JSON.parse(localStorage.getItem('taxi_records') || '{}');
-    data[dateInput.value] = {
-      rev: parseInt(revenueInput.value) || 0,
-      trips: parseInt(document.getElementById('tripsInput').value) || 0,
-      memo: document.getElementById('memoInput').value,
-      night: isNightMode
-    };
+    data[dateInput.value] = { rev: parseInt(revenueInput.value) || 0, trips: parseInt(document.getElementById('tripsInput').value) || 0, memo: document.getElementById('memoInput').value, night: isNightMode };
     localStorage.setItem('taxi_records', JSON.stringify(data));
-    showToast("💾 ローカル保存完了");
-    updateSummary();
+    showToast("保存完了"); updateSummary();
   };
 
-  document.getElementById('saveBtn').onclick = saveData;
+  document.getElementById('prevDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()-1); dateInput.value=d.toISOString().split('T')[0]; loadData(); };
+  document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; loadData(); };
+  dateInput.onchange = loadData;
+  document.getElementById('nightBtn').onclick = () => { isNightMode = !isNightMode; loadData(); };
+  document.getElementById('settingBtn').onclick = () => { renderPastMonths(); document.getElementById('settingsModal').style.display='flex'; };
+  document.getElementById('fabCalc').onclick = () => document.getElementById('calcModal').style.display='flex';
+  document.getElementById('calcClose').onclick = () => document.getElementById('calcModal').style.display='none';
 
-  nightBtn.onclick = () => {
-    let d = new Date(dateInput.value);
-    if (!isNightMode) { d.setDate(d.getDate() - 1); isNightMode = true; }
-    else { isNightMode = false; }
-    dateInput.value = d.toISOString().split('T')[0];
-    updateWeekday(); loadData();
-  };
-
-  document.getElementById('prevDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()-1); dateInput.value=d.toISOString().split('T')[0]; updateWeekday(); loadData(); };
-  document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; updateWeekday(); loadData(); };
-  dateInput.onchange = () => { updateWeekday(); loadData(); };
-
-  /* 電卓ロジック */
-  let exp = "0";
-  const cDisp = document.getElementById('calcDisplay');
-  document.querySelectorAll('.calc-grid button').forEach(b => {
-    b.onclick = () => {
-      const v = b.textContent;
-      if (v==='AC' || v==='C') exp="0";
-      else if (v==='⌫') exp = exp.length > 1 ? exp.slice(0,-1) : "0";
-      else if (v==='=') { try { exp = String(Math.floor(eval(exp.replace('×','*').replace('÷','/')))); } catch(e) { exp="Error"; } }
-      else { exp = (exp==="0") ? v : exp + v; }
-      cDisp.textContent = exp;
-    };
-  });
-  document.getElementById('calcAutoInput').onclick = () => {
-    try {
-      const res = Math.floor(eval(exp.replace('×','*').replace('÷','/')));
-      revenueInput.value = res;
-      document.getElementById('calcModal').style.display='none';
-      saveData();
-    } catch(e){}
-  };
-
-  /* Google Auth 初期化 */
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: (resp) => {
-      if (resp.access_token) {
-        accessToken = resp.access_token;
-        document.getElementById('btnSync').disabled = false;
-        document.getElementById('btnSync').className = "btn-metal small";
-        showToast("✅ ログイン成功");
-      }
-    },
-  });
-
-  document.getElementById('btnAuth').onclick = () => tokenClient.requestAccessToken({prompt: 'consent'});
-
-  document.getElementById('btnSync').onclick = async () => {
-    if(!accessToken) return;
-    showToast("☁️ 同期中...");
-    const content = localStorage.getItem('taxi_records');
-    try {
-      const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json' and trashed=false`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      }).then(r => r.json());
-
-      let fileId = (search.files && search.files.length > 0) ? search.files[0].id : null;
-      let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=media';
-      let method = 'POST';
-
-      if (fileId) {
-        url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
-        method = 'PATCH';
-      }
-
-      const res = await fetch(url, {
-        method: method,
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: content
-      });
-
-      if (res.ok) {
-        if (!fileId) {
-          const newFile = await res.json();
-          await fetch(`https://www.googleapis.com/drive/v3/files/${newFile.id}`, {
-            method: 'PATCH',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'taxi_backup.json' })
-          });
-        }
-        showToast("✅ クラウド保存完了");
-      }
-    } catch (e) { showToast("❌ 同期エラー"); }
-  };
-
-  document.getElementById('settingBtn').onclick = () => { document.getElementById('settingsModal').style.display='flex'; };
-  document.getElementById('fabCalc').onclick = () => { exp="0"; cDisp.textContent="0"; document.getElementById('calcModal').style.display='flex'; };
-  document.querySelectorAll('.closeBtn, #calcCloseHalf').forEach(b => b.onclick = () => b.closest('.modal').style.display='none');
   document.getElementById('saveSettingsClose').onclick = () => {
+    const pasts = [];
+    document.querySelectorAll('#pastMonthsContainer .row').forEach(row => {
+      pasts.push({ month: row.querySelector('.past-month').value, val: row.querySelector('.past-val').value });
+    });
+    localStorage.setItem('taxi_past_months', JSON.stringify(pasts));
     localStorage.setItem('taxi_settings', JSON.stringify({ mGoal: +document.getElementById('mGoal').value, yGoal: +document.getElementById('yGoal').value }));
     document.getElementById('settingsModal').style.display='none';
     updateSummary();
   };
 
-  updateWeekday();
+  let exp = "0"; const disp = document.getElementById('calcDisplay');
+  document.querySelectorAll('.c-btn').forEach(btn => {
+    btn.onclick = () => {
+      const v = btn.textContent;
+      if(v==='AC' || v==='C') exp="0";
+      else if(v==='⌫') exp = exp.length > 1 ? exp.slice(0,-1) : "0";
+      else if(v==='=') { try{ exp = String(eval(exp.replace('×','*').replace('÷','/'))); }catch(e){exp="Error";} }
+      else { exp = exp === "0" ? v : exp + v; }
+      disp.textContent = exp;
+    };
+  });
+  document.getElementById('calcAutoInput').onclick = () => { revenueInput.value = parseInt(disp.textContent) || 0; document.getElementById('calcModal').style.display='none'; };
+
+  if(typeof google !== 'undefined'){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPES,
+      callback: (resp) => { if(resp.access_token){ accessToken = resp.access_token; document.getElementById('btnSync').disabled = false; document.getElementById('btnSync').className = "btn-metal"; showToast("認証成功"); } }
+    });
+  }
+  document.getElementById('btnAuth').onclick = () => tokenClient.requestAccessToken();
+  document.getElementById('btnSync').onclick = async () => {
+    showToast("同期中..."); const content = localStorage.getItem('taxi_records');
+    try {
+      const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json'`, { headers: {'Authorization': `Bearer ${accessToken}`} }).then(r => r.json());
+      let fileId = (search.files && search.files.length > 0) ? search.files[0].id : null;
+      let url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media` : `https://www.googleapis.com/upload/drive/v3/files?uploadType=media`;
+      const res = await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: {'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json'}, body: content });
+      if(res.ok && !fileId){
+        const newFile = await res.json();
+        await fetch(`https://www.googleapis.com/drive/v3/files/${newFile.id}`, { method: 'PATCH', headers: {'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json'}, body: JSON.stringify({name: 'taxi_backup.json'}) });
+      }
+      showToast("クラウド保存完了");
+    } catch(e){ showToast("同期エラー"); }
+  };
   loadData();
 });
 </script>
