@@ -107,7 +107,7 @@ button:active{transform:scale(.97)}
 <div class="toast" id="toast"></div>
 
 <script>
-// ★ ここに発行したClientIDを貼り付けてください
+// ★ ClientIDをセットしました
 const CLIENT_ID = '491909112361-noij4qkjaujbjhcare972qgnbttvfd9a.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let accessToken = null, tokenClient, isNightMode = false;
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast("保存完了"); updateSummary();
   };
 
-  // ★ 夜勤ボタン修正：ラベル切り替えのみに変更
+  // ★ 夜勤ボタン：日付は変えず、ラベルと内部フラグだけ切り替える
   nightBtn.onclick = () => {
     isNightMode = !isNightMode;
     nightBtn.textContent = isNightMode ? "🌙 夜勤" : "☀️ 日勤";
@@ -177,35 +177,47 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nextDay').onclick = () => { let d=new Date(dateInput.value); d.setDate(d.getDate()+1); dateInput.value=d.toISOString().split('T')[0]; loadData(); };
   dateInput.onchange = loadData;
 
-  /* --- Google Auth --- */
-  if(typeof google !== 'undefined'){
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID, scope: SCOPES,
-      callback: (resp) => {
-        if(resp.access_token){
-          accessToken = resp.access_token;
-          document.getElementById('btnSync').disabled = false;
-          document.getElementById('btnSync').className = "btn-metal";
-          showToast("認証成功");
+  /* --- Google Auth 修正：ライブラリ読み込み後に初期化し、ボタンに命令を直結 --- */
+  function initGoogleAuth() {
+    if(typeof google !== 'undefined'){
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID, scope: SCOPES,
+        callback: (resp) => {
+          if(resp.access_token){
+            accessToken = resp.access_token;
+            document.getElementById('btnSync').disabled = false;
+            document.getElementById('btnSync').className = "btn-metal";
+            showToast("認証成功");
+          }
         }
-      }
-    });
+      });
+    }
   }
-  document.getElementById('btnAuth').onclick = () => tokenClient.requestAccessToken({prompt: 'consent'});
+  
+  // ライブラリの読み込みを待って初期化
+  window.onload = initGoogleAuth;
+
+  document.getElementById('btnAuth').onclick = () => {
+    if(tokenClient) {
+      tokenClient.requestAccessToken({prompt: 'consent'}); // ★ ここに実行命令を記述
+    } else {
+      showToast("Googleライブラリ読込中...");
+    }
+  };
 
   document.getElementById('btnSync').onclick = async () => {
-    showToast("同期中...");
+    showToast("クラウド保存中...");
     const content = localStorage.getItem('taxi_records');
     try {
       const search = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='taxi_backup.json'`, { headers: {'Authorization': `Bearer ${accessToken}`} }).then(r => r.json());
       let fileId = (search.files && search.files.length > 0) ? search.files[0].id : null;
       let url = fileId ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media` : `https://www.googleapis.com/upload/drive/v3/files?uploadType=media`;
-      const res = await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: {'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json'}, body: content });
+      await fetch(url, { method: fileId ? 'PATCH' : 'POST', headers: {'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json'}, body: content });
       showToast("クラウド保存完了");
     } catch(e){ showToast("同期エラー"); }
   };
 
-  /* --- 電卓・設定（省略なし） --- */
+  /* --- 電卓・設定 --- */
   document.getElementById('settingBtn').onclick = () => {
     const container = document.getElementById('pastMonthsContainer');
     container.innerHTML = '';
@@ -232,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fabCalc').onclick = () => document.getElementById('calcModal').style.display='flex';
   document.getElementById('calcClose').onclick = () => document.getElementById('calcModal').style.display='none';
   let exp = "0"; const disp = document.getElementById('calcDisplay');
-  document.querySelectorAll('.calc-grid button').forEach(btn => {
+  document.querySelectorAll('.c-btn').forEach(btn => {
     btn.onclick = () => {
       const v = btn.textContent;
       if(v==='AC' || v==='C') exp="0";
